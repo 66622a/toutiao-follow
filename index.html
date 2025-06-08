@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toutiao User Feed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f5f7;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        #main-container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #d9534f;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .article {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .article:last-child {
+            border-bottom: none;
+        }
+        .article-content {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .article-meta {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 15px;
+        }
+        .comments-section h3 {
+            font-size: 1em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .comments-list {
+            list-style-type: none;
+            padding-left: 20px;
+            border-left: 3px solid #f0f0f0;
+        }
+        .comment {
+            padding: 8px 0;
+            font-size: 0.9em;
+        }
+        .comment-user {
+            font-weight: bold;
+            color: #0275d8;
+        }
+        .comment-location {
+            font-size: 0.8em;
+            color: #999;
+            background-color: #f7f7f7;
+            padding: 2px 5px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        #loader {
+            text-align: center;
+            font-size: 1.2em;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-container">
+        <h1>Toutiao Feed Viewer</h1>
+        <div id="articles-container">
+            <div id="loader">Loading articles and comments...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration from your Python script ---
+
+        // CORS Proxy to bypass browser security restrictions.
+        // We use allorigins.win which wraps the API request.
+        const corsProxy = 'https://api.allorigins.win/raw?url=';
+
+        const mainFeedUrl = "https://www.toutiao.com/api/pc/list/user/feed?category=pc_profile_ugc&token=MS4wLjABAAAAfuLrCjbbZL8H-LNXIuUpmNY8akAjw1dyvywVOW6ARDg&max_behot_time=0&entrance_gid=&aid=24&app_name=toutiao_web&a_bogus=dy8MMmgDDEdkkf6d5WOLfY3qVWq3YMHr0t9bMDhqGVfevg39HMO99exE9UzvNpWjxG%2FZIeLjy4hSOpPMiOC7A3v6HSRKl2Ck-g00t-PZ5o0j5ZvruyR0rtRF4kt4FeeM5iQ3xOssy7QtKSRmW9Pe-wHvPjojx2f39gbs";
+        
+        // Note: The _signature might be dynamic. If requests fail, this could be the reason.
+        const commentsBaseUrl = "https://www.toutiao.com/article/v4/tab_comments/?aid=24&app_name=toutiao_web&offset=0&count=20&group_id={article_id}&item_id={article_id}&_signature=_02B4Z6wo00f010FByBQAAIDA7QLqc7YuVj9BZcyAALgggUHgqPh4-oiMoBeqGn1MtpaTNpd07FLxDtj6Dn1IKLfU3JXAw6od8sYMJPRxLB2l3E0tYr02tImAqjeWRvPT3JnGuiZq0o8zCOXC77";
+
+        const requestHeaders = {
+            "accept": "application/json, text/plain, */*", // More suitable for JS fetch
+            "cookie": document.cookie, // Pass user's cookies, essential for auth
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+        };
+        
+        // --- Main Application Logic ---
+
+        const articlesContainer = document.getElementById('articles-container');
+        const loader = document.getElementById('loader');
+
+        // Function to fetch data from a URL using the CORS proxy
+        async function fetchData(url) {
+            // We encode the target URL to ensure it's passed correctly to the proxy
+            const proxiedUrl = `${corsProxy}${encodeURIComponent(url)}`;
+            const response = await fetch(proxiedUrl, { headers: requestHeaders });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} for URL: ${url}`);
+            }
+            return response.json();
+        }
+
+        // Main function to orchestrate fetching and rendering
+        async function fetchAndDisplayFeed() {
+            try {
+                // 1. Fetch main feed data
+                console.log("Fetching main feed data...");
+                const feedData = await fetchData(mainFeedUrl);
+                
+                if (!feedData || !feedData.data) {
+                    throw new Error("Main feed data is empty or invalid.");
+                }
+
+                // Clear loader
+                articlesContainer.innerHTML = ''; 
+
+                // 2. Process each article and fetch its comments
+                for (const item of feedData.data) {
+                    const articleContent = item.content;
+                    const articleId = item.thread_id || item.id;
+                    const createTimeTimestamp = item.create_time;
+
+                    // Convert timestamp (seconds) to readable datetime string
+                    const createTime = new Date(createTimeTimestamp * 1000).toLocaleString();
+
+                    let comments = [];
+                    if (articleId) {
+                        console.log(`Fetching comments for article ID: ${articleId}`);
+                        const commentsUrl = commentsBaseUrl.replaceAll('{article_id}', articleId);
+                        try {
+                            const commentsData = await fetchData(commentsUrl);
+                            if (commentsData && commentsData.data) {
+                                comments = commentsData.data.map(entry => ({
+                                    text: entry.comment?.text,
+                                    userName: entry.comment?.user_name,
+                                    ipLocation: entry.comment?.publish_loc_info || ''
+                                })).filter(c => c.text && c.userName); // Filter out empty comments
+                            }
+                        } catch (commentError) {
+                            console.error(`Could not fetch comments for article ${articleId}:`, commentError);
+                        }
+                    }
+                    
+                    // 3. Render the article and its comments to the page
+                    renderArticle(articleContent, createTime, comments);
+                }
+
+            } catch (error) {
+                console.error("An error occurred:", error);
+                loader.textContent = `Failed to load data. See console for details. Error: ${error.message}`;
+            }
+        }
+
+        // Function to create and append HTML elements for a single article
+        function renderArticle(content, time, comments) {
+            const articleDiv = document.createElement('div');
+            articleDiv.className = 'article';
+
+            articleDiv.innerHTML = `
+                <p class="article-content">${content}</p>
+                <p class="article-meta">Published on: ${time}</p>
+                <div class="comments-section">
+                    <h3>Comments (${comments.length})</h3>
+                    ${comments.length > 0 ? '' : '<p>No comments found.</p>'}
+                </div>
+            `;
+            
+            if (comments.length > 0) {
+                const commentsList = document.createElement('ul');
+                commentsList.className = 'comments-list';
+                
+                comments.forEach(comment => {
+                    const commentItem = document.createElement('li');
+                    commentItem.className = 'comment';
+                    
+                    const locationSpan = comment.ipLocation ? `<span class="comment-location">IP: ${comment.ipLocation}</span>` : '';
+                    
+                    commentItem.innerHTML = `
+                        <span class="comment-user">${comment.userName}:</span>
+                        <span>${comment.text}</span>
+                        ${locationSpan}
+                    `;
+                    commentsList.appendChild(commentItem);
+                });
+                
+                articleDiv.querySelector('.comments-section').appendChild(commentsList);
+            }
+
+            articlesContainer.appendChild(articleDiv);
+        }
+
+        // Start the process when the page loads
+        document.addEventListener('DOMContentLoaded', fetchAndDisplayFeed);
+
+    </script>
+</body>
+</html>
