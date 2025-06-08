@@ -2,13 +2,11 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- This tag is crucial for mobile optimization -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>头条关注！华族88！</title>
     <style>
-        /* CSS Variables for easy theme management */
         :root {
-            --primary-color: #d9534f; /* Toutiao Red */
+            --primary-color: #d9534f;
             --background-color: #f4f5f7;
             --card-background: #ffffff;
             --text-color: #333333;
@@ -16,18 +14,14 @@
             --border-color: #eeeeee;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
-
-        /* General Reset and Body Styling */
         body {
             margin: 0;
-            padding-top: 60px; /* Space for the fixed header */
+            padding-top: 60px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--background-color);
             color: var(--text-color);
             line-height: 1.6;
         }
-
-        /* Fixed Header */
         header {
             position: fixed;
             top: 0;
@@ -42,93 +36,30 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             z-index: 1000;
         }
-
-        header h1 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        /* Main Content Container */
-        main {
-            padding: 15px;
-        }
-
-        /* Article Card Styling */
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+        main { padding: 15px; }
         .article-card {
             background: var(--card-background);
             border-radius: 12px;
             margin-bottom: 20px;
             box-shadow: var(--shadow);
-            overflow: hidden; /* Ensures content respects border-radius */
+            overflow: hidden;
             padding: 20px;
         }
-
-        .article-content {
-            font-size: 1rem;
-            margin-bottom: 15px;
-            white-space: pre-wrap; /* Preserves line breaks from the content */
-        }
-
-        .article-meta {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            border-top: 1px solid var(--border-color);
-            padding-top: 10px;
-        }
-
-        /* Collapsible Comments Section */
-        .comments-section {
-            margin-top: 20px;
-        }
+        .article-content { font-size: 1rem; margin-bottom: 15px; white-space: pre-wrap; }
+        .article-meta { font-size: 0.8rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 10px; }
+        .comments-section { margin-top: 20px; }
+        .comments-section details { border-top: 1px solid var(--border-color); padding-top: 10px; }
+        .comments-section summary { font-weight: 600; color: var(--primary-color); cursor: pointer; padding: 5px 0; font-size: 0.95rem; }
+        .comments-list { list-style-type: none; padding-left: 0; margin-top: 10px; }
+        .comment { padding: 10px; font-size: 0.9rem; border-bottom: 1px solid #f9f9f9; }
+        .comment:last-child { border-bottom: none; }
+        .comment:nth-child(even) { background-color: #fafafa; }
+        .comment-user { font-weight: bold; color: #0275d8; }
+        .comment-location { font-size: 0.75rem; color: var(--text-secondary); background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
         
-        .comments-section details {
-            border-top: 1px solid var(--border-color);
-            padding-top: 10px;
-        }
-
-        .comments-section summary {
-            font-weight: 600;
-            color: var(--primary-color);
-            cursor: pointer;
-            padding: 5px 0;
-            font-size: 0.95rem;
-        }
-        
-        .comments-list {
-            list-style-type: none;
-            padding-left: 0;
-            margin-top: 10px;
-        }
-
-        .comment {
-            padding: 10px;
-            font-size: 0.9rem;
-            border-bottom: 1px solid #f9f9f9;
-        }
-        .comment:last-child {
-            border-bottom: none;
-        }
-        .comment:nth-child(even) {
-            background-color: #fafafa;
-        }
-
-        .comment-user {
-            font-weight: bold;
-            color: #0275d8;
-        }
-
-        .comment-location {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            background-color: #f0f0f0;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-left: 8px;
-        }
-
-        /* Loading Spinner */
-        #loader {
+        /* 【关键改动】将加载动画的样式居中 */
+        .loader-container {
             display: flex;
             justify-content: center;
             padding: 50px;
@@ -145,9 +76,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        /* Error Message Box */
-        #error-container {
+        .error-container {
             background-color: #fdd;
             border: 1px solid #f44336;
             color: #d32f2f;
@@ -156,25 +85,12 @@
             border-radius: 8px;
             text-align: center;
         }
-
-        /* Hide elements by default */
-        .hidden {
-            display: none;
-        }
+        .hidden { display: none; }
         
-        /* Desktop Responsiveness */
         @media (min-width: 768px) {
-            main {
-                max-width: 700px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-            header h1 {
-                font-size: 1.5rem;
-            }
-            .article-content {
-                font-size: 1.1rem;
-            }
+            main { max-width: 700px; margin: 0 auto; padding: 20px; }
+            header h1 { font-size: 1.5rem; }
+            .article-content { font-size: 1.1rem; }
         }
     </style>
 </head>
@@ -185,67 +101,52 @@
     </header>
 
     <main>
-        <div id="loader">
-            <div class="spinner"></div>
-        </div>
-        
-        <div id="error-container" class="hidden"></div>
-        
+        <!-- 【关键改动】将加载动画和错误提示都放到文章容器内部 -->
         <div id="articles-container">
-            <!-- Articles will be injected here by JavaScript -->
+            <!-- 初始状态：显示加载动画 -->
+            <div class="loader-container">
+                <div class="spinner"></div>
+            </div>
         </div>
     </main>
 
     <script>
-        // DOM Element References
         const articlesContainer = document.getElementById('articles-container');
-        const loader = document.getElementById('loader');
-        const errorContainer = document.getElementById('error-container');
-
-        // The URL of OUR back-end server API
         const API_URL = 'http://localhost:5000/api/feed';
 
-        // --- UI State Management Functions ---
-        const showLoader = () => loader.classList.remove('hidden');
-        const hideLoader = () => loader.classList.add('hidden');
-        const showError = (message) => {
-            errorContainer.textContent = `加载失败: ${message}. 请确认后台服务是否已启动.`;
-            errorContainer.classList.remove('hidden');
-        };
-        const hideError = () => errorContainer.classList.add('hidden');
-        
-        // --- Main Data Fetching and Rendering Logic ---
         async function fetchAndDisplayFeed() {
-            showLoader();
-            hideError();
-
             try {
                 const response = await fetch(API_URL);
                 if (!response.ok) {
-                    throw new Error(`后台服务器错误 (状态: ${response.status})`);
+                    const errorData = await response.json(); // 尝试获取后端返回的错误信息
+                    throw new Error(errorData.error || `后台服务器错误 (状态: ${response.status})`);
                 }
                 const articles = await response.json();
 
                 if (!articles || articles.length === 0) {
-                    throw new Error("未能从后台获取到任何文章数据.");
+                    throw new Error("未能从后台获取到任何文章数据。");
                 }
 
-                // Generate all article HTML at once for better performance
+                // 【关键改动】生成所有文章的HTML
                 const articlesHtml = articles.map(createArticleHtml).join('');
+                
+                // 【关键改动】用文章内容直接覆盖掉加载动画
                 articlesContainer.innerHTML = articlesHtml;
 
             } catch (error) {
-                console.error("Failed to fetch or display feed:", error);
-                showError(error.message);
-            } finally {
-                hideLoader();
+                console.error("加载或显示内容时出错:", error);
+                // 【关键改动】如果出错，用错误信息覆盖掉加载动画
+                articlesContainer.innerHTML = `
+                    <div class="error-container">
+                        <strong>加载失败:</strong> ${error.message}<br>
+                        <small>请确认后台服务(backend.py)是否已正确启动且无报错。</small>
+                    </div>
+                `;
             }
         }
         
-        // --- HTML Generation Function ---
         function createArticleHtml(article) {
             const { content, create_time, comments } = article;
-
             const commentsHtml = comments && comments.length > 0
                 ? comments.map(comment => `
                     <li class="comment">
@@ -274,7 +175,6 @@
             `;
         }
 
-        // --- Start the application ---
         document.addEventListener('DOMContentLoaded', fetchAndDisplayFeed);
     </script>
 
