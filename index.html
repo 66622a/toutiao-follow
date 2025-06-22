@@ -12,7 +12,24 @@
             --text-color: #333333;
             --text-secondary: #777777;
             --border-color: #eeeeee;
+            --quote-background: #f7f7f7;
+            --comment-even-background: #fafafa;
+            --comment-border: #f9f9f9;
+            --location-background: #f0f0f0;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        body.dark-mode {
+            --background-color: #121212;
+            --card-background: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: #333333;
+            --quote-background: #1e1e1e;
+            --comment-even-background: #2a2a2a;
+            --comment-border: #333333;
+            --location-background: #2a2a2a;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         }
         body {
             margin: 0;
@@ -37,6 +54,15 @@
             z-index: 1000;
         }
         header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+        #toggle-dark-mode {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
         main { padding: 15px; }
         .article-card {
             background: var(--card-background);
@@ -52,11 +78,20 @@
         .comments-section details { border-top: 1px solid var(--border-color); padding-top: 10px; }
         .comments-section summary { font-weight: 600; color: var(--primary-color); cursor: pointer; padding: 5px 0; font-size: 0.95rem; }
         .comments-list { list-style-type: none; padding-left: 0; margin-top: 10px; }
-        .comment { padding: 10px; font-size: 0.9rem; border-bottom: 1px solid #f9f9f9; }
+        .comment { padding: 10px; font-size: 0.9rem; border-bottom: 1px solid var(--comment-border); }
         .comment:last-child { border-bottom: none; }
-        .comment:nth-child(even) { background-color: #fafafa; }
+        .comment:nth-child(even) { background-color: var(--comment-even-background); }
         .comment-user { font-weight: bold; color: #0275d8; }
-        .comment-location { font-size: 0.75rem; color: var(--text-secondary); background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+        .comment-location { font-size: 0.75rem; color: var(--text-secondary); background-color: var(--location-background); padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+
+        /* 引用内容的样式 */
+        .quote-box {
+            border-left: 4px solid var(--primary-color);
+            background-color: var(--quote-background);
+            padding: 10px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
         
         /* 【关键改动】将加载动画的样式居中 */
         .loader-container {
@@ -98,6 +133,7 @@
 
     <header>
         <h1>头条关注！华族88！</h1>
+        <button id="toggle-dark-mode" title="切换深色模式">🌙</button>
     </header>
 
     <main>
@@ -112,11 +148,32 @@
 
     <script>
         const articlesContainer = document.getElementById('articles-container');
+        const toggleButton = document.getElementById('toggle-dark-mode');
+        // 默认从远程服务获取数据，可按需改为本地后端
         const API_URL = 'https://toutiao-api.11451499.xyz/api/feed';
+        const FETCH_TIMEOUT = 15000; // 15秒超时
+
+function fetchWithTimeout(url, options = {}) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+            return fetch(url, { ...options, signal: controller.signal })
+                .finally(() => clearTimeout(timeoutId));
+}
+
+        function applySavedTheme() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        toggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        });
 
         async function fetchAndDisplayFeed() {
             try {
-                const response = await fetch(API_URL);
+                const response = await fetchWithTimeout(API_URL);
                 if (!response.ok) {
                     const errorData = await response.json(); // 尝试获取后端返回的错误信息
                     throw new Error(errorData.error || `后台服务器错误 (状态: ${response.status})`);
@@ -135,33 +192,67 @@
 
             } catch (error) {
                 console.error("加载或显示内容时出错:", error);
-                // 【关键改动】如果出错，用错误信息覆盖掉加载动画
-                articlesContainer.innerHTML = `
-                    <div class="error-container">
-                        <strong>加载失败:</strong> ${error.message}<br>
-                        <small>请确认后台服务(backend.py)是否已正确启动且无报错。</small>
-                    </div>
-                `;
+                // 如果是超时导致的错误，提示并在15秒后自动刷新页面
+                if (error.name === 'AbortError') {
+                    articlesContainer.innerHTML = `
+                        <div class="error-container">
+                            <strong>请求超时，页面将在 15 秒后自动刷新。</strong><br>
+                            <small>请确认后台服务(backend.py)是否已正确启动且无报错。</small>
+                        </div>
+                    `;
+                    setTimeout(() => location.reload(), FETCH_TIMEOUT);
+                } else {
+                    // 其他错误直接显示
+                    articlesContainer.innerHTML = `
+                        <div class="error-container">
+                            <strong>加载失败:</strong> ${error.message}<br>
+                            <small>请确认后台服务(backend.py)是否已正确启动且无报错。</small>
+                        </div>
+                    `;
+                }
             }
         }
         
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, c => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[c]);
+        }
+
         function createArticleHtml(article) {
             const { content, create_time, comments } = article;
+
+            let quotePart = '';
+            let mainContent = content;
+            const delimiter = '\n---\n';
+            const idx = content.indexOf(delimiter);
+            if (idx !== -1) {
+                quotePart = content.slice(0, idx).trim();
+                mainContent = content.slice(idx + delimiter.length).trim();
+            }
+
             const commentsHtml = comments && comments.length > 0
                 ? comments.map(comment => `
                     <li class="comment">
                         <div>
-                            <span class="comment-user">${comment.user_name || '匿名用户'}:</span>
-                            <span>${comment.text || ''}</span>
+                            <span class="comment-user">${escapeHtml(comment.user_name || '匿名用户')}:</span>
+                            <span>${escapeHtml(comment.text || '')}</span>
                         </div>
-                        ${comment.ip_location ? `<span class="comment-location">IP: ${comment.ip_location}</span>` : ''}
+                        ${comment.ip_location ? `<span class="comment-location">IP: ${escapeHtml(comment.ip_location)}</span>` : ''}
                     </li>
                 `).join('')
                 : '<li>没有评论。</li>';
 
             return `
                 <article class="article-card">
-                    <p class="article-content">${content}</p>
+                    <div class="article-content">
+                        ${quotePart ? `<div class="quote-box">${escapeHtml(quotePart)}</div>` : ''}
+                        <p>${escapeHtml(mainContent)}</p>
+                    </div>
                     <p class="article-meta">发布于: ${create_time}</p>
                     <div class="comments-section">
                         <details>
@@ -175,7 +266,10 @@
             `;
         }
 
-        document.addEventListener('DOMContentLoaded', fetchAndDisplayFeed);
+        document.addEventListener('DOMContentLoaded', () => {
+            applySavedTheme();
+            fetchAndDisplayFeed();
+        });
     </script>
 
 </body>
