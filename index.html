@@ -113,10 +113,18 @@
     <script>
         const articlesContainer = document.getElementById('articles-container');
         const API_URL = 'https://toutiao-api.11451499.xyz/api/feed';
+        const FETCH_TIMEOUT = 15000; // 15秒超时
+
+        function fetchWithTimeout(url, options = {}) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+            return fetch(url, { ...options, signal: controller.signal })
+                .finally(() => clearTimeout(timeoutId));
+        }
 
         async function fetchAndDisplayFeed() {
             try {
-                const response = await fetch(API_URL);
+                const response = await fetchWithTimeout(API_URL);
                 if (!response.ok) {
                     const errorData = await response.json(); // 尝试获取后端返回的错误信息
                     throw new Error(errorData.error || `后台服务器错误 (状态: ${response.status})`);
@@ -135,13 +143,24 @@
 
             } catch (error) {
                 console.error("加载或显示内容时出错:", error);
-                // 【关键改动】如果出错，用错误信息覆盖掉加载动画
-                articlesContainer.innerHTML = `
-                    <div class="error-container">
-                        <strong>加载失败:</strong> ${error.message}<br>
-                        <small>请确认后台服务(backend.py)是否已正确启动且无报错。</small>
-                    </div>
-                `;
+                // 如果是超时导致的错误，提示并在15秒后自动刷新页面
+                if (error.name === 'AbortError') {
+                    articlesContainer.innerHTML = `
+                        <div class="error-container">
+                            <strong>请求超时，页面将在 15 秒后自动刷新。</strong><br>
+                            <small>请确认后台服务(backend.py)是否已正确启动且无报错。</small>
+                        </div>
+                    `;
+                    setTimeout(() => location.reload(), FETCH_TIMEOUT);
+                } else {
+                    // 其他错误直接显示
+                    articlesContainer.innerHTML = `
+                        <div class="error-container">
+                            <strong>加载失败:</strong> ${error.message}<br>
+                            <small>请确认后台服务(backend.py)是否已正确启动且无报错。</small>
+                        </div>
+                    `;
+                }
             }
         }
         
