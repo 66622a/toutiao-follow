@@ -57,6 +57,15 @@
         .comment:nth-child(even) { background-color: #fafafa; }
         .comment-user { font-weight: bold; color: #0275d8; }
         .comment-location { font-size: 0.75rem; color: var(--text-secondary); background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+
+        /* 引用内容的样式 */
+        .quote-box {
+            border-left: 4px solid var(--primary-color);
+            background-color: #f7f7f7;
+            padding: 10px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
         
         /* 【关键改动】将加载动画的样式居中 */
         .loader-container {
@@ -164,23 +173,46 @@
             }
         }
         
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, c => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[c]);
+        }
+
         function createArticleHtml(article) {
             const { content, create_time, comments } = article;
+
+            let quotePart = '';
+            let mainContent = content;
+            const delimiter = '\n---\n';
+            const idx = content.indexOf(delimiter);
+            if (idx !== -1) {
+                quotePart = content.slice(0, idx).trim();
+                mainContent = content.slice(idx + delimiter.length).trim();
+            }
+
             const commentsHtml = comments && comments.length > 0
                 ? comments.map(comment => `
                     <li class="comment">
                         <div>
-                            <span class="comment-user">${comment.user_name || '匿名用户'}:</span>
-                            <span>${comment.text || ''}</span>
+                            <span class="comment-user">${escapeHtml(comment.user_name || '匿名用户')}:</span>
+                            <span>${escapeHtml(comment.text || '')}</span>
                         </div>
-                        ${comment.ip_location ? `<span class="comment-location">IP: ${comment.ip_location}</span>` : ''}
+                        ${comment.ip_location ? `<span class="comment-location">IP: ${escapeHtml(comment.ip_location)}</span>` : ''}
                     </li>
                 `).join('')
                 : '<li>没有评论。</li>';
 
             return `
                 <article class="article-card">
-                    <p class="article-content">${content}</p>
+                    <div class="article-content">
+                        ${quotePart ? `<div class="quote-box">${escapeHtml(quotePart)}</div>` : ''}
+                        <p>${escapeHtml(mainContent)}</p>
+                    </div>
                     <p class="article-meta">发布于: ${create_time}</p>
                     <div class="comments-section">
                         <details>
