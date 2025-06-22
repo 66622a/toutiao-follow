@@ -12,7 +12,24 @@
             --text-color: #333333;
             --text-secondary: #777777;
             --border-color: #eeeeee;
+            --quote-background: #f7f7f7;
+            --comment-even-background: #fafafa;
+            --comment-border: #f9f9f9;
+            --location-background: #f0f0f0;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        body.dark-mode {
+            --background-color: #121212;
+            --card-background: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: #333333;
+            --quote-background: #1e1e1e;
+            --comment-even-background: #2a2a2a;
+            --comment-border: #333333;
+            --location-background: #2a2a2a;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         }
         body {
             margin: 0;
@@ -37,6 +54,15 @@
             z-index: 1000;
         }
         header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+        #toggle-dark-mode {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
         main { padding: 15px; }
         .article-card {
             background: var(--card-background);
@@ -52,16 +78,16 @@
         .comments-section details { border-top: 1px solid var(--border-color); padding-top: 10px; }
         .comments-section summary { font-weight: 600; color: var(--primary-color); cursor: pointer; padding: 5px 0; font-size: 0.95rem; }
         .comments-list { list-style-type: none; padding-left: 0; margin-top: 10px; }
-        .comment { padding: 10px; font-size: 0.9rem; border-bottom: 1px solid #f9f9f9; }
+        .comment { padding: 10px; font-size: 0.9rem; border-bottom: 1px solid var(--comment-border); }
         .comment:last-child { border-bottom: none; }
-        .comment:nth-child(even) { background-color: #fafafa; }
+        .comment:nth-child(even) { background-color: var(--comment-even-background); }
         .comment-user { font-weight: bold; color: #0275d8; }
-        .comment-location { font-size: 0.75rem; color: var(--text-secondary); background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+        .comment-location { font-size: 0.75rem; color: var(--text-secondary); background-color: var(--location-background); padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
 
         /* 引用内容的样式 */
         .quote-box {
             border-left: 4px solid var(--primary-color);
-            background-color: #f7f7f7;
+            background-color: var(--quote-background);
             padding: 10px;
             margin-bottom: 10px;
             white-space: pre-wrap;
@@ -107,6 +133,7 @@
 
     <header>
         <h1>头条关注！华族88！</h1>
+        <button id="toggle-dark-mode" title="切换深色模式">🌙</button>
     </header>
 
     <main>
@@ -121,16 +148,28 @@
 
     <script>
         const articlesContainer = document.getElementById('articles-container');
+        const toggleButton = document.getElementById('toggle-dark-mode');
         // 默认从远程服务获取数据，可按需改为本地后端
         const API_URL = 'https://toutiao-api.11451499.xyz/api/feed';
         const FETCH_TIMEOUT = 15000; // 15秒超时
 
-        function fetchWithTimeout(url, options = {}) {
+function fetchWithTimeout(url, options = {}) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
             return fetch(url, { ...options, signal: controller.signal })
                 .finally(() => clearTimeout(timeoutId));
+}
+
+        function applySavedTheme() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
         }
+
+        toggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        });
 
         async function fetchAndDisplayFeed() {
             try {
@@ -227,7 +266,10 @@
             `;
         }
 
-        document.addEventListener('DOMContentLoaded', fetchAndDisplayFeed);
+        document.addEventListener('DOMContentLoaded', () => {
+            applySavedTheme();
+            fetchAndDisplayFeed();
+        });
     </script>
 
 </body>

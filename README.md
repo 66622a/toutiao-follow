@@ -13,5 +13,8 @@ This small project fetches feed data from Toutiao and displays it in a simple we
    pip install Flask Flask-Cors requests cachetools
    python backend.py
    ```
-   Then change the `API_URL` in `index.html` to `/api/feed` so it fetches from
-   the local server on port `5000`.
+Then change the `API_URL` in `index.html` to `/api/feed` so it fetches from
+the local server on port `5000`.
+
+3. Use the moon icon in the header to switch between light and dark modes.
+   Your preference is stored locally so the next visit keeps the same theme.
