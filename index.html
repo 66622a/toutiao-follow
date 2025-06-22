@@ -121,7 +121,8 @@
 
     <script>
         const articlesContainer = document.getElementById('articles-container');
-        const API_URL = 'https://toutiao-api.11451499.xyz/api/feed';
+        // 默认从本地后端获取数据，可根据需要改成完整URL
+        const API_URL = '/api/feed';
         const FETCH_TIMEOUT = 15000; // 15秒超时
 
         function fetchWithTimeout(url, options = {}) {
